@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,13 +40,14 @@ public class TCPKeyValueStoreServer {
                 while ((request = in.readLine()) != null) {
                     // Check for EXIT command
                     if (request.equalsIgnoreCase("EXIT")) {
-                        System.out.println("Client requested to exit. Shutting down the server.");
+                        log("Client requested to exit. Shutting down the connection.");
                         out.println("Server is shutting down.");
                         break; // Exit the loop, close the connection
                     }
 
                     String response = processRequest(request);
                     out.println(response);
+                    log("Processed request: " + request);
                 }
             } catch (IOException e) {
                 System.err.println("Error in client connection: " + e.getMessage());
@@ -60,32 +63,49 @@ public class TCPKeyValueStoreServer {
 
     private static String processRequest(String request) {
         String[] parts = request.split(" ", 3);
+        
+        // Check for malformed requests
+        if (parts.length < 2) {
+            log("Received malformed request of length " + request.length() + 
+                " from unknown client");
+            return "Invalid request format";
+        }
+
         String command = parts[0].toUpperCase();
+        String key;
+        String value;
         String response;
 
         switch (command) {
             case "PUT":
-                String key = parts[1];
-                String value = parts[2];
-                keyValueStore.put(key, value);
-                System.out.println("Stored: " + key + " = " + value); // Debugging output
-                response = "PUT successful: " + key + " = " + value;
+                key = parts[1];
+                value = parts.length > 2 ? parts[2] : null;
+                if (value != null) {
+                    keyValueStore.put(key, value);
+                    response = "PUT successful: " + key + " = " + value;
+                } else {
+                    response = "Invalid PUT format";
+                }
                 break;
             case "GET":
                 key = parts[1];
                 value = keyValueStore.get(key);
-                System.out.println("Retrieving: " + key + " = " + value); // Debugging output
                 response = value != null ? value : "Key not found";
                 break;
             case "DELETE":
                 key = parts[1];
                 keyValueStore.remove(key);
-                System.out.println("Deleted: " + key); // Debugging output
                 response = "DELETE successful";
                 break;
             default:
                 response = "Invalid command";
         }
+        
         return response;
+    }
+
+    private static void log(String message) {
+        String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
+        System.out.println("[" + timestamp + "] " + message);
     }
 }
