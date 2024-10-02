@@ -23,11 +23,27 @@ public class UDPKeyValueStoreClient {
         Scanner scanner = new Scanner(System.in);
         socket.setSoTimeout(TIMEOUT_MS); // Set timeout for receiving response
 
+        System.out.println("\nWelcome to the UDP Key-Value Store Client");
+        System.out.println("\nPre-populated 5 key-value pairs:");
+
+        // Send pre-populated key-value pairs to the server
+        String[] prePopulatedRequests = {
+            "PUT name Diya",
+            "PUT age 20",
+            "PUT city Manama",
+            "PUT country Bahrain",
+            "PUT profession Student"
+        };
+
+        for (String request : prePopulatedRequests) {
+            sendRequest(socket, address, port, request);
+            receiveResponse(socket);
+        }
+
         while (true) {
             // Display menu options
-            System.out.println("What would you like to do? \n1. Add a key-value pair\n2. Get a value by key\n3. Delete a key-value pair\n4. Exit\nEnter your choice:");
+            System.out.println("\nWhat would you like to do? \n1. Add a key-value pair\n2. Get a value by key\n3. Delete a key-value pair\n4. Exit\nEnter your choice:\n");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume the newline character
 
             String request;
 
@@ -59,38 +75,17 @@ public class UDPKeyValueStoreClient {
 
                 default:
                     System.out.println("Invalid choice. Please try again.");
-                    continue;
+                    continue; // Skip the sending process for invalid choices
             }
 
-            // Send the request to the server
-            byte[] buffer = request.getBytes();
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, port);
-            socket.send(packet);
+            // Send request to the server
+            sendRequest(socket, address, port, request);
 
-            // If the exit command is sent, break the loop
-            if (choice == 4) {
-                // Wait for the server's exit response
-                packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
-                try {
-                    socket.receive(packet);
-                    String response = new String(packet.getData(), 0, packet.getLength());
-                    log("Response: " + response);
-                } catch (SocketTimeoutException e) {
-                    log("Error: No response received for exit command.");
-                }
-                break; // Exit the loop after receiving the exit confirmation
-            }
+            // Handle response from the server
+            receiveResponse(socket);
 
-            // Receive and display the response from the server
-            packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
-            try {
-                socket.receive(packet);
-                String response = new String(packet.getData(), 0, packet.getLength());
-                log("Response: " + response);
-            } catch (SocketTimeoutException e) {
-                log("Error: No response received for request: " + request);
-            } catch (Exception e) {
-                log("Error: Received malformed response.");
+            if (request.equalsIgnoreCase("EXIT")) {
+                break; // Exit the loop for exit command
             }
         }
 
@@ -98,8 +93,27 @@ public class UDPKeyValueStoreClient {
         scanner.close();
     }
 
+    private static void sendRequest(DatagramSocket socket, InetAddress address, int port, String request) throws Exception {
+        DatagramPacket packet = new DatagramPacket(request.getBytes(), request.length(), address, port);
+        socket.send(packet);
+    }
+
+    private static void receiveResponse(DatagramSocket socket) {
+        try {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
+            socket.receive(responsePacket);
+            String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+            log(response);
+        } catch (SocketTimeoutException e) {
+            System.out.println("No response from server within " + TIMEOUT_MS / 1000 + " seconds.");
+        } catch (Exception e) {
+            System.out.println("Error receiving response: " + e.getMessage());
+        }
+    }
+
     private static void log(String message) {
         String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
-        System.out.println("[" + timestamp + "] " + message);
+        System.out.println("\n[Response from server at: " + timestamp + "]\n" + message);
     }
 }

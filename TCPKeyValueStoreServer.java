@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Arrays;
 
 public class TCPKeyValueStoreServer {
     private static final Map<String, String> keyValueStore = new HashMap<>();
@@ -41,12 +42,14 @@ public class TCPKeyValueStoreServer {
                     // Check for EXIT command
                     if (request.equalsIgnoreCase("EXIT")) {
                         log("Client requested to exit. Shutting down the connection.");
-                        out.println("Server is shutting down.");
+                        out.println("Goodbye! Closing connection.");
+                        out.flush();
                         break; // Exit the loop, close the connection
                     }
 
                     String response = processRequest(request);
                     out.println(response);
+                    out.flush(); // Flush the output to ensure immediate delivery
                     log("Processed request: " + request);
                 }
             } catch (IOException e) {
@@ -62,43 +65,54 @@ public class TCPKeyValueStoreServer {
     }
 
     private static String processRequest(String request) {
-        String[] parts = request.split(" ", 3);
+        String[] parts = request.split(" ");
+        log("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
         
-        // Check for malformed requests
-        if (parts.length < 2) {
-            log("Received malformed request of length " + request.length() + 
-                " from unknown client");
+        // Check for malformed requests; LIST does not require a key or value
+        if (parts.length == 0) {
+            log("Received empty request from unknown address");
             return "Invalid request format";
         }
 
         String command = parts[0].toUpperCase();
-        String key;
+        String key = parts.length > 1 ? parts[1] : null;
         String value;
         String response;
 
         switch (command) {
             case "PUT":
-                key = parts[1];
                 value = parts.length > 2 ? parts[2] : null;
-                if (value != null) {
-                    keyValueStore.put(key, value);
-                    response = "PUT successful: " + key + " = " + value;
+                if (key != null && value != null) {
+                    if (keyValueStore.containsKey(key)) {
+                        System.out.println("Updated value for key: " + key);
+                        keyValueStore.put(key, value);
+                        response = "Key already exists. Updating value for key: " + key;
+                    }
+                    else{
+                        keyValueStore.put(key, value);
+                        response = "PUT successful: " + key + " = " + value;
+                    }
                 } else {
-                    response = "Invalid PUT format";
+                    response = "Invalid PUT format. Use: PUT <key> <value>";
                 }
                 break;
+
             case "GET":
-                key = parts[1];
                 value = keyValueStore.get(key);
-                response = value != null ? value : "Key not found";
+                response = value != null ? value : "Key not found: " + key;
                 break;
+
             case "DELETE":
-                key = parts[1];
-                keyValueStore.remove(key);
-                response = "DELETE successful";
+                if (keyValueStore.remove(key) != null) {
+                    response = "DELETE successful: " + key;
+                } else {
+                    response = "Key not found for deletion: " + key;
+                }
                 break;
+
             default:
-                response = "Invalid command";
+                response = "Invalid command. Available commands: PUT, GET, DELETE, EXIT.";
+                break;
         }
         
         return response;

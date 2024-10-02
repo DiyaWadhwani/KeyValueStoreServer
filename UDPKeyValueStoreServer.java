@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Arrays;
 
 public class UDPKeyValueStoreServer {
     private static final int BUFFER_SIZE = 1024;
@@ -16,7 +17,6 @@ public class UDPKeyValueStoreServer {
         }
 
         int port = Integer.parseInt(args[0]);
-
         DatagramSocket socket = new DatagramSocket(port);
         byte[] buffer = new byte[BUFFER_SIZE];
 
@@ -52,30 +52,40 @@ public class UDPKeyValueStoreServer {
 
     private static String processRequest(String message) {
         String[] parts = message.split(" ");
+        log("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
         
-        // Check for malformed requests
-        if (parts.length < 2) {
-            log("Received malformed request of length " + message.length() + 
-                " from " + "unknown address");
+        // Check for malformed requests; LIST does not require a key or value
+        if (parts.length == 0) {
+            log("Received empty request from unknown address");
             return "Invalid request format";
         }
 
         String command = parts[0];
-        String key = parts[1];
+        String key = parts.length > 1 ? parts[1] : null;
         String value = parts.length > 2 ? parts[2] : null;
 
         switch (command.toUpperCase()) {
             case "PUT":
                 if (value != null) {
-                    keyValueStore.put(key, value);
-                    return "PUT successful: " + key + " = " + value;
+                    if (keyValueStore.containsKey(key)) {
+                        System.out.println("Updated value for key: " + key);
+                        keyValueStore.put(key, value);
+                        return("Key already exists. Updating value for key: " + key);
+                    }
+                    else{
+                        keyValueStore.put(key, value);
+                        return "PUT successful: " + key + " = " + value;
+                    }
                 } else {
                     return "Invalid PUT format";
                 }
+
             case "GET":
                 return keyValueStore.containsKey(key) ? keyValueStore.get(key) : "Key not found";
+
             case "DELETE":
                 return keyValueStore.remove(key) != null ? key + " DELETE successful" : "Key not found";
+                
             default:
                 return "Unknown command";
         }
