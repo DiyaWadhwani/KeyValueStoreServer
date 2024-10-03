@@ -12,6 +12,11 @@ public class UDPKeyValueStoreClient {
     private static final Logger logger = Logger.getLogger(UDPKeyValueStoreClient.class.getName());
 
     public static void main(String[] args) throws Exception {
+
+        //counter for put, get and delete operations
+        int putCount = 0;
+        int getCount = 0;
+        int deleteCount = 0;
         
         //setting up logger
         setupLogger();
@@ -54,32 +59,41 @@ public class UDPKeyValueStoreClient {
             int choice = scanner.nextInt();
             scanner.nextLine();
 
-            String request;
+            String request="";
 
             switch (choice) {
                 case 1:
-                    logger.info("\nEnter the key:");
+                    logger.info("\nEnter the key (in lowercase):");
                     String key = scanner.nextLine().toLowerCase();
-                    logger.info("\nEnter the value:");
+                    logger.info("\nEnter the value (use underscore between multi-word values):");
                     String value = scanner.nextLine();
                     request = "PUT " + key + " " + value;
+                    putCount++;
                     break;
 
                 case 2:
-                    logger.info("\nEnter the key:");
+                    logger.info("\nEnter the key (in lowercase):");
                     key = scanner.nextLine().toLowerCase();
                     request = "GET " + key;
+                    getCount++;
                     break;
 
                 case 3:
-                    logger.info("\nEnter the key:");
+                    logger.info("\nEnter the key (in lowercase):");
                     key = scanner.nextLine().toLowerCase();
                     request = "DELETE " + key;
+                    deleteCount++;
                     break;
 
                 case 4:
-                    logger.info("Exiting...");
-                    request = "EXIT"; // Send exit command to the server
+                    if(putCount > 4 && getCount > 4 && deleteCount > 4){
+                        logger.info("Exiting...");
+                        request = "EXIT"; // Send exit command to the server
+                    }
+                    else if(putCount < 5 || getCount < 5 || deleteCount < 5){
+                        logger.info("You need to perform "+(5-putCount)+" more PUT, "+(5-getCount)+" GET, and "+(5-deleteCount)+" DELETE operations before exiting");
+                        continue;
+                    }
                     break;
 
                 default:

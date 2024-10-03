@@ -43,7 +43,7 @@ public class TCPKeyValueStoreServer {
                 String request;
                 while ((request = in.readLine()) != null) {
                     // Check for EXIT command
-                    if (request.equalsIgnoreCase("EXIT")) {
+                    if (request.equalsIgnoreCase("EXIT") || request.equalsIgnoreCase("")) {
                         logger.info("Client requested to exit. Shutting down the connection.");
                         out.println("Goodbye! Closing connection.");
                         out.flush();

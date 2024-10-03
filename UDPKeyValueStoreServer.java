@@ -34,7 +34,7 @@ public class UDPKeyValueStoreServer {
             String responseMessage;
 
             // If the request is an EXIT command, break the loop and close the server
-            if (receivedMessage.equalsIgnoreCase("EXIT")) {
+            if (receivedMessage.equalsIgnoreCase("EXIT") || receivedMessage.equalsIgnoreCase("")) {
                 logger.info("Server is shutting down.");
                 responseMessage = "Server is shutting down.";
                 DatagramPacket response = new DatagramPacket(responseMessage.getBytes(), responseMessage.length(),
