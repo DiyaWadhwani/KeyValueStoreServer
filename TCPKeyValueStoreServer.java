@@ -1,24 +1,27 @@
 import java.io.*;
 import java.net.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
+import java.util.logging.*;
 
 public class TCPKeyValueStoreServer {
     private static final Map<String, String> keyValueStore = new HashMap<>();
+    private static final Logger logger = Logger.getLogger(TCPKeyValueStoreServer.class.getName());
 
     public static void main(String[] args) {
+
+        setupLogger();
+
         if (args.length != 1) {
-            System.out.println("Usage: java TCPKeyValueStoreServer <port>");
+            logger.info("Usage: java TCPKeyValueStoreServer <port>");
             return;
         }
 
         int port = Integer.parseInt(args[0]);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("TCP Server listening on port " + port);
+            logger.info("TCP Server listening on port " + port);
             while (true) {
                 try {
                     Socket clientSocket = serverSocket.accept();
@@ -41,7 +44,7 @@ public class TCPKeyValueStoreServer {
                 while ((request = in.readLine()) != null) {
                     // Check for EXIT command
                     if (request.equalsIgnoreCase("EXIT")) {
-                        log("Client requested to exit. Shutting down the connection.");
+                        logger.info("Client requested to exit. Shutting down the connection.");
                         out.println("Goodbye! Closing connection.");
                         out.flush();
                         break; // Exit the loop, close the connection
@@ -50,7 +53,7 @@ public class TCPKeyValueStoreServer {
                     String response = processRequest(request);
                     out.println(response);
                     out.flush(); // Flush the output to ensure immediate delivery
-                    log("Processed request: " + request);
+                    logger.info("Processed request: " + request);
                 }
             } catch (IOException e) {
                 System.err.println("Error in client connection: " + e.getMessage());
@@ -66,11 +69,11 @@ public class TCPKeyValueStoreServer {
 
     private static String processRequest(String request) {
         String[] parts = request.split(" ");
-        log("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
+        logger.info("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
         
-        // Check for malformed requests; LIST does not require a key or value
+        // Check for malformed requests;
         if (parts.length == 0) {
-            log("Received empty request from unknown address");
+            logger.info("Received empty request from unknown address");
             return "Invalid request format";
         }
 
@@ -84,7 +87,7 @@ public class TCPKeyValueStoreServer {
                 value = parts.length > 2 ? parts[2] : null;
                 if (key != null && value != null) {
                     if (keyValueStore.containsKey(key)) {
-                        System.out.println("Updated value for key: " + key);
+                        logger.info("Updated value for key: " + key);
                         keyValueStore.put(key, value);
                         response = "Key already exists. Updating value for key: " + key;
                     }
@@ -118,8 +121,30 @@ public class TCPKeyValueStoreServer {
         return response;
     }
 
-    private static void log(String message) {
-        String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
-        System.out.println("[" + timestamp + "] " + message);
+    private static void setupLogger() {
+        try {
+            Logger rootLogger = Logger.getLogger("");
+
+            Handler[] handlers = rootLogger.getHandlers();
+            for (Handler handler : handlers) {
+                rootLogger.removeHandler(handler);
+            }
+
+            // Creating a file handler for logging to a file
+            FileHandler fileHandler = new FileHandler("logs/TCPServer.log");
+            fileHandler.setFormatter(new CustomFormatter());
+            logger.addHandler(fileHandler);
+
+            // Creating a console handler
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+            consoleHandler.setFormatter(new CustomFormatter());
+            logger.addHandler(consoleHandler);
+
+            // Setting logger level
+            logger.setLevel(Level.INFO);
+
+        } catch (IOException e) {
+            System.err.println("Error setting up logger: " + e.getMessage());
+        }
     }
 }

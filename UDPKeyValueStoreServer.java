@@ -1,18 +1,22 @@
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
+import java.util.logging.*;
 
 public class UDPKeyValueStoreServer {
     private static final int BUFFER_SIZE = 1024;
     private static Map<String, String> keyValueStore = new HashMap<>();
+    private static final Logger logger = Logger.getLogger(UDPKeyValueStoreServer.class.getName());
 
     public static void main(String[] args) throws Exception {
+
+        setupLogger();
+
         if (args.length != 1) {
-            System.out.println("Usage: java UDPKeyValueStoreServer <port>");
+            logger.info("Usage: java UDPKeyValueStoreServer <port>");
             return;
         }
 
@@ -20,7 +24,7 @@ public class UDPKeyValueStoreServer {
         DatagramSocket socket = new DatagramSocket(port);
         byte[] buffer = new byte[BUFFER_SIZE];
 
-        System.out.println("UDP Server listening on port " + port);
+        logger.info("UDP Server listening on port " + port);
 
         while (true) {
             DatagramPacket request = new DatagramPacket(buffer, buffer.length);
@@ -31,7 +35,7 @@ public class UDPKeyValueStoreServer {
 
             // If the request is an EXIT command, break the loop and close the server
             if (receivedMessage.equalsIgnoreCase("EXIT")) {
-                System.out.println("Server is shutting down.");
+                logger.info("Server is shutting down.");
                 responseMessage = "Server is shutting down.";
                 DatagramPacket response = new DatagramPacket(responseMessage.getBytes(), responseMessage.length(),
                         request.getAddress(), request.getPort());
@@ -44,7 +48,7 @@ public class UDPKeyValueStoreServer {
                     request.getAddress(), request.getPort());
             socket.send(response);
 
-            log("Received and processed: " + receivedMessage + " from " + request.getAddress() + ":" + request.getPort());
+            logger.info("Received and processed: " + receivedMessage + " from " + request.getAddress() + ":" + request.getPort());
         }
 
         socket.close();
@@ -52,11 +56,11 @@ public class UDPKeyValueStoreServer {
 
     private static String processRequest(String message) {
         String[] parts = message.split(" ");
-        log("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
+        logger.info("Parts: " + Arrays.toString(parts)); // Use Arrays.toString to log parts correctly
         
-        // Check for malformed requests; LIST does not require a key or value
+        // Check for malformed requests;
         if (parts.length == 0) {
-            log("Received empty request from unknown address");
+            logger.info("Received empty request from unknown address");
             return "Invalid request format";
         }
 
@@ -66,9 +70,9 @@ public class UDPKeyValueStoreServer {
 
         switch (command.toUpperCase()) {
             case "PUT":
-                if (value != null) {
+                if (key != null && value != null) {
                     if (keyValueStore.containsKey(key)) {
-                        System.out.println("Updated value for key: " + key);
+                        logger.info("Updated value for key: " + key);
                         keyValueStore.put(key, value);
                         return("Key already exists. Updating value for key: " + key);
                     }
@@ -85,14 +89,36 @@ public class UDPKeyValueStoreServer {
 
             case "DELETE":
                 return keyValueStore.remove(key) != null ? key + " DELETE successful" : "Key not found";
-                
+
             default:
                 return "Unknown command";
         }
     }
 
-    private static void log(String message) {
-        String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
-        System.out.println("[" + timestamp + "] " + message);
+    private static void setupLogger() {
+        try {
+            Logger rootLogger = Logger.getLogger("");
+
+            Handler[] handlers = rootLogger.getHandlers();
+            for (Handler handler : handlers) {
+                rootLogger.removeHandler(handler);
+            }
+
+            // Creating a file handler for logging to a file
+            FileHandler fileHandler = new FileHandler("logs/UDPServer.log");
+            fileHandler.setFormatter(new CustomFormatter());
+            logger.addHandler(fileHandler);
+
+            // Creating a console handler
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+            consoleHandler.setFormatter(new CustomFormatter());
+            logger.addHandler(consoleHandler);
+
+            // Setting logger level
+            logger.setLevel(Level.INFO);
+
+        } catch (IOException e) {
+            System.err.println("Error setting up logger: " + e.getMessage());
+        }
     }
 }
