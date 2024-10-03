@@ -99,6 +99,7 @@ What would you like to do?
 2. Get a value by key
 3. Delete a key-value pair
 4. Exit
-   Enter your choice:
+
+Enter your choice:
 
 The user will follow the prompts to perform the desired operations, ensuring they complete the required number of operations before exiting.
