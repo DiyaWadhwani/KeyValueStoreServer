@@ -103,3 +103,4 @@ What would you like to do?
 Enter your choice:
 
 The user will follow the prompts to perform the desired operations, ensuring they complete the required number of operations before exiting.
+_Ensure you enter all keys in lowercase and values with multi-words must have an underscore(\_) in between them instead of whitespace_
